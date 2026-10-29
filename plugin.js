@@ -5,6 +5,8 @@
   let shape = "square";
   let playersOn = false;
   let beat = 0;
+  let seq = 0;
+  let pushedAt = 0;
 
   function take(next) {
     if (!next) return;
@@ -35,14 +37,23 @@
 
   function pushClock() {
     if (!ctx || !ctx.roomId) return;
+    seq += 1;
+    pushedAt = Date.now();
     fetch("/api/rooms/" + ctx.roomId + "/events", {
       method: "POST",
       headers: ctx.headers || { "content-type": "application/json" },
-      body: JSON.stringify({ type: "clock", on: playersOn, size: size, shape: shape })
+      body: JSON.stringify({ type: "clock", on: playersOn, size: size, shape: shape, seq: seq })
     }).catch(function () {});
   }
 
+  function maybePush() {
+    if (!playersOn) return;
+    if (Date.now() - pushedAt < 1000) return;
+    pushClock();
+  }
+
   function paintFace() {
+    maybePush();
     if (!box || !box.isConnected) return;
     const now = new Date();
     const node = box.querySelector("[data-clock=now]");
